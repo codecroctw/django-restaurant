@@ -13,9 +13,23 @@ const paths = {
     src: ['src/scss/bundle.scss'],
     dest: ['dist/css'],
   },
+  normalizeCss: {
+    src: ['./node_modules/normalize.css/**/*.css'],
+    dest: ['dist/css/normalize.css'],
+  },
+  materializeCss: {
+    src: ['./node_modules/materialize-css/**/*.min.css'],
+    dest: ['dist/css/materialize-css'],
+  },
 };
 
 export const clean = () => del(['dist']);
+
+const importNormalize = () =>
+  gulp.src(paths.normalizeCss.src).pipe(gulp.dest(paths.normalizeCss.dest));
+
+const importMaterialize = () =>
+  gulp.src(paths.materializeCss.src).pipe(gulp.dest(paths.materializeCss.dest));
 
 export const styles = () => {
   return gulp
@@ -31,4 +45,8 @@ export const watch = () => {
   gulp.watch('src/scss/**/*.scss', styles);
 };
 
-export const dev = gulp.series(clean, gulp.parallel(styles), watch);
+export const dev = gulp.series(
+  clean,
+  gulp.parallel([importNormalize, importMaterialize, styles]),
+  watch
+);

@@ -183,3 +183,4 @@ pip-selfcheck.json
 assets-bundle/
 node_modules/
 dist/
+tags*
