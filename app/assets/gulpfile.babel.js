@@ -4,9 +4,12 @@ import del from 'del';
 import cleanCSS from 'gulp-clean-css';
 import gulpIf from 'gulp-if';
 import sourceMaps from 'gulp-sourcemaps';
+import browserSync from 'browser-sync';
 const sass = require('gulp-sass')(require('sass'));
 
 const PRODUCTION = yargs.argv.prod;
+
+const server = browserSync.create();
 
 const paths = {
   styles: {
@@ -21,6 +24,18 @@ const paths = {
     src: ['./node_modules/materialize-css/**/*.min.css'],
     dest: ['dist/css/materialize-css'],
   },
+};
+
+export const serve = done => {
+  server.init({
+    proxy: 'http://localhost:8000',
+  });
+  done();
+};
+
+export const reload = done => {
+  server.reload();
+  done();
 };
 
 export const clean = () => del(['dist']);
@@ -42,11 +57,12 @@ export const styles = () => {
 };
 
 export const watch = () => {
-  gulp.watch('src/scss/**/*.scss', styles);
+  gulp.watch('src/scss/**/*.scss', gulp.series(styles, reload));
 };
 
 export const dev = gulp.series(
   clean,
   gulp.parallel([importNormalize, importMaterialize, styles]),
+  serve,
   watch
 );
