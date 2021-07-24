@@ -26,3 +26,9 @@ export const styles = () => {
     .pipe(gulpIf(!PRODUCTION, sourceMaps.write()))
     .pipe(gulp.dest(paths.styles.dest));
 };
+
+export const watch = () => {
+  gulp.watch('src/scss/**/*.scss', styles);
+};
+
+export const dev = gulp.series(clean, gulp.parallel(styles), watch);
