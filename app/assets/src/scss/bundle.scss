@@ -1,8 +1,6 @@
 @import 'normalize.css/normalize.css';
 @import 'materialize-css/dist/css/materialize.min.css';
 
-$text-color: blue;
-
-html {
-	color: $text-color;
+#main {
+	min-height: 66vh;
 }
