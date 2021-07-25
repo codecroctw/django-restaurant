@@ -5,6 +5,12 @@ import cleanCSS from 'gulp-clean-css';
 import gulpIf from 'gulp-if';
 import sourceMaps from 'gulp-sourcemaps';
 import browserSync from 'browser-sync';
+import info from './package.json';
+import webpack from 'webpack-stream';
+import uglify from 'gulp-uglify';
+import imageMin from 'gulp-imagemin';
+import named from 'vinyl-named';
+
 const sass = require('gulp-sass')(require('sass'));
 
 const PRODUCTION = yargs.argv.prod;
@@ -13,18 +19,25 @@ const server = browserSync.create();
 
 const paths = {
   styles: {
-    src: ['src/scss/bundle.scss'],
+    src: ['scss/bundle.scss'],
     dest: ['dist/css'],
   },
-  normalizeCss: {
-    src: ['./node_modules/normalize.css/**/*.css'],
-    dest: ['dist/css/normalize.css'],
+  scripts: {
+    src: ['js/bundle.js'],
+    dest: 'dist/js',
   },
-  materializeCss: {
-    src: ['./node_modules/materialize-css/**/*.min.css'],
-    dest: ['dist/css/materialize-css'],
+  images: {
+    src: ['img/**/*.{jpg,jpeg,png,svg,gif}'],
+    dest: 'dist/img',
   },
 };
+
+const nodePaths = Object.keys(info.dependencies).map(
+  packageName => `node_modules/${packageName}{,/**}`
+);
+
+export const copyNodes = () =>
+  gulp.src(nodePaths).pipe(gulp.dest('dist/node_modules'));
 
 export const serve = done => {
   server.init({
@@ -40,12 +53,6 @@ export const reload = done => {
 
 export const clean = () => del(['dist']);
 
-const importNormalize = () =>
-  gulp.src(paths.normalizeCss.src).pipe(gulp.dest(paths.normalizeCss.dest));
-
-const importMaterialize = () =>
-  gulp.src(paths.materializeCss.src).pipe(gulp.dest(paths.materializeCss.dest));
-
 export const styles = () => {
   return gulp
     .src(paths.styles.src)
@@ -56,13 +63,52 @@ export const styles = () => {
     .pipe(gulp.dest(paths.styles.dest));
 };
 
+export const scripts = () => {
+  return gulp
+    .src(paths.scripts.src)
+    .pipe(named())
+    .pipe(
+      webpack({
+        module: {
+          rules: [
+            {
+              test: /\.js$/,
+              use: {
+                loader: 'babel-loader',
+                options: { presets: ['@babel/preset-env'] },
+              },
+            },
+          ],
+        },
+        output: {
+          filename: '[name].js',
+        },
+        devtool: !PRODUCTION ? 'inline-source-map' : false,
+        mode: PRODUCTION ? 'production' : 'development',
+      })
+    )
+    .pipe(gulpIf(PRODUCTION, uglify()))
+    .pipe(gulp.dest(paths.scripts.dest));
+};
+
+export const images = () => {
+  return gulp
+    .src(paths.images.src)
+    .pipe(imageMin())
+    .pipe(gulp.dest(paths.images.dest));
+};
+
 export const watch = () => {
-  gulp.watch('src/scss/**/*.scss', gulp.series(styles, reload));
+  gulp.watch('js/**/*.js', gulp.series(scripts, reload));
+  gulp.watch('scss/**/*.scss', gulp.series(styles, reload));
+  gulp.watch(paths.images.src, gulp.series(images, reload));
+  gulp.watch('../templates/**/*', reload);
 };
 
 export const dev = gulp.series(
   clean,
-  gulp.parallel([importNormalize, importMaterialize, styles]),
+  copyNodes,
+  gulp.parallel([styles, images, scripts]),
   serve,
   watch
 );
